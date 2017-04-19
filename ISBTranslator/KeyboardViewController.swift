@@ -83,7 +83,9 @@ class KeyboardViewController: UIViewController, UIPopoverPresentationControllerD
         translation.textSource = inputTextTranslateTextField.text
         
         translation.textTranslation(completion: { (translatedText) in
-            self.viewTextResultLabel.text = translatedText
+            DispatchQueue.main.sync {
+                self.viewTextResultLabel.text = translatedText
+            }
         })
     }
     
