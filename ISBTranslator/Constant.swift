@@ -6,6 +6,7 @@
 //  Copyright © 2017 ISB. All rights reserved.
 //
 
+import UIKit
 import Foundation
 
 let FirstScreen = "FirstScreen"
@@ -29,9 +30,24 @@ let LanguageList: [String: String] = [
     "Vietnamese" : "vi"
 ]
 
+let SpeechLanguageList: [String: String] = [
+    "English" : "en-EN",
+    "Japanese" : "ja-JP",
+    "Vietnamese" : "vi-VN"
+]
+
+struct LanguageCodes {
+    static let English = SpeechLanguageList["English"]
+}
+
+
 enum LanguagePopover: NSNumber {
     case width = 150
     case height = 151
 }
 
-
+struct Messages {
+    static let errorSpeech = "Cannot recognize speech. \n Please try again."
+    static let audioEngineNotInput = "Audio engine has no input node"
+    static let unableRecognitionRequest = "Unable to create an SFSpeechAudioBufferRecognitionRequest object"
+}

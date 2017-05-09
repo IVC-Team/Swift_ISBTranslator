@@ -11,4 +11,10 @@ import Foundation
 enum Config: String{
     case  HttpTranslateURL = "https://www.googleapis.com/language/translate/v2?"
     case  API_Key = "AIzaSyC8C-yszNljGKMZR9_hFl4zIXql_ATopTA"
+    
+}
+
+enum ConfigTimeInterval: Double{
+    case  SpeechFirstStart = 5.0
+    case  SpeechRecording = 1.5
 }

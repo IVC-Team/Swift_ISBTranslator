@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import UIKit
 
 class Translation{
     
@@ -44,19 +45,23 @@ class Translation{
             } else {
                 
                 do {
-                    //todo: will update this function
-                    if let data = data {
-                        if let json = try JSONSerialization.jsonObject(with: data, options:JSONSerialization.ReadingOptions.mutableContainers) as? NSDictionary {
-                            if let jsonData = json["data"] as? [String : Any] {
-                                if let translations = jsonData["translations"] as? [NSDictionary] {
-                                    if let translation = translations.first as? [String : Any] {
-                                        if let translatedText = translation["translatedText"] as? String {                                            completion(translatedText)
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                    let json = try JSONSerialization.jsonObject(with: data!, options:JSONSerialization.ReadingOptions.mutableContainers) as? NSDictionary
+                    
+                    let jsonData = json?["data"] as? [String : Any]
+                    
+                    let translations = jsonData?["translations"] as? [NSDictionary]
+                    
+                    let translation = translations?.first as? [String : Any]
+                    
+                    if let translatedText = translation?["translatedText"] as? String{
+                        completion(translatedText)
                     }
+                    else{
+                        //todo: will update for this
+                        print("translate error")
+                    }
+                    
+                    
                     
                 } catch {
                     //todo: will update for this

@@ -8,7 +8,7 @@
 
 import UIKit
 
-class KeyboardViewController: UIViewController, UIPopoverPresentationControllerDelegate, SelectLanguageDelegate{
+class KeyboardViewController: UIViewController, UIPopoverPresentationControllerDelegate, UITabBarDelegate, SelectLanguageDelegate{
     
     @IBOutlet weak var textResultScrollView: UIScrollView!
     @IBOutlet weak var languageView: UIView!
@@ -17,22 +17,30 @@ class KeyboardViewController: UIViewController, UIPopoverPresentationControllerD
     @IBOutlet weak var languageScrollView: UIScrollView!
     @IBOutlet weak var tabBar: UITabBar!
     @IBOutlet weak var targetLanguageButton: UIButton!
+    @IBOutlet weak var translateButton: UIButton!
     @IBOutlet weak var sourceLanguageButton: UIButton!
     
     var sourceLanguage: String = Languages.english.rawValue
     var targetLanguage: String = Languages.japanese.rawValue
     var languageList: [String: String] = [:]
     var targetLanguageIsActive: Bool = false
+    var loading: UIActivityIndicatorView! = nil
     
     override func viewDidLoad() {
         super.viewDidLoad()
         self.languageList = LanguageList
         inputTextTranslateTextField.becomeFirstResponder() //open the keyboard
         self.hideKeyboardWhenTappedAround()//set hide keyboard acction - tap the space of screen
+        self.tabBar?.delegate = self
+        
+        self.translateButton.isEnabled = false
+        
+        loading = self.addLoading()
     }
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        //UIApplication.shared.statusBarStyle = .lightContent
         registerKeyboardNotifications()
     }
     
@@ -49,10 +57,16 @@ class KeyboardViewController: UIViewController, UIPopoverPresentationControllerD
         if segue.identifier == "showSelectLanguage" {
             let popoverViewController = segue.destination as! SelectLanguageViewController
             popoverViewController.delegate = self
-            popoverViewController.preferredContentSize = CGSize(width: LanguagePopover.width.rawValue as CGFloat, height:LanguagePopover.height.rawValue as CGFloat)
+            popoverViewController.preferredContentSize = CGSize(width: LanguagePopover.width.rawValue as! CGFloat, height:LanguagePopover.height.rawValue as! CGFloat)
             popoverViewController.popoverPresentationController?.delegate = self
             popoverViewController.popoverPresentationController?.permittedArrowDirections = UIPopoverArrowDirection.down
-            popoverViewController.popoverPresentationController?.backgroundColor = UIColor(red: 0, green: 0, blue: 0, alpha: 0.0)
+            popoverViewController.popoverPresentationController?.backgroundColor = UIColor.transparent
+        }
+    }
+    
+    func tabBar(_ tabBar: UITabBar, didSelect item: UITabBarItem) {
+        if (tabBar.items?[0] == item) {
+            self.performSegue(withIdentifier: Screens.voiceScreen.rawValue, sender: self)
         }
     }
     
@@ -76,17 +90,8 @@ class KeyboardViewController: UIViewController, UIPopoverPresentationControllerD
     }
     
     @IBAction func translateButtonTapped(_ sender: Any) {
-               
-        let translation = Translation()
-        translation.sourceLanguage = self.sourceLanguage
-        translation.targetLanguage = self.targetLanguage
-        translation.textSource = inputTextTranslateTextField.text
-        
-        translation.textTranslation(completion: { (translatedText) in
-            DispatchQueue.main.sync {
-                self.viewTextResultLabel.text = translatedText
-            }
-        })
+        self.loading.startAnimating()
+        self.translation(textRecognized: self.inputTextTranslateTextField.text!)
     }
     
     @IBAction func sourceLanguageButtonTapped(_ sender: Any) {
@@ -95,6 +100,15 @@ class KeyboardViewController: UIViewController, UIPopoverPresentationControllerD
     
     @IBAction func targetLanguageButtonTapped(_ sender: Any) {
         self.targetLanguageIsActive = true
+    }
+    @IBAction func inputTextChanged(_ sender: Any) {
+        if !(inputTextTranslateTextField.text?.isEmpty)!{
+            self.translateButton.isEnabled = true
+        }
+        else{
+            self.translateButton.isEnabled = false
+            self.viewTextResultLabel.text = ""
+        }
     }
     
     @IBAction func switchLanguageButtonTapped(_ sender: Any) {
@@ -106,6 +120,25 @@ class KeyboardViewController: UIViewController, UIPopoverPresentationControllerD
         
         self.sourceLanguageButton.setTitle(tergetTemp, for: .normal)
         self.sourceLanguage = self.languageList[tergetTemp!]!
+        
+        self.inputTextTranslateTextField.text = self.viewTextResultLabel.text
+        
+        self.translation(textRecognized: self.inputTextTranslateTextField.text!)
+    }
+    
+    func translation(textRecognized: String) {
+        
+        let translation = Translation()
+        translation.sourceLanguage = self.sourceLanguage
+        translation.targetLanguage = self.targetLanguage
+        translation.textSource = textRecognized
+        
+        translation.textTranslation(completion: { (translatedText) in
+            DispatchQueue.main.sync {
+                self.loading.stopAnimating()
+                self.viewTextResultLabel.text = translatedText
+            }
+        })
     }
     
     func registerKeyboardNotifications() {
