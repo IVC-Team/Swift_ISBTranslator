@@ -66,6 +66,12 @@ class VoiceViewController: UIViewController, UIPopoverPresentationControllerDele
         }
         
     }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        self.navigationController?.interactivePopGestureRecognizer?.isEnabled = false
+        self.navigationController?.isNavigationBarHidden = true
+    }
+
 
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
@@ -82,10 +88,19 @@ class VoiceViewController: UIViewController, UIPopoverPresentationControllerDele
         }
     }
     
+    func adaptivePresentationStyle(for controller: UIPresentationController) -> UIModalPresentationStyle {
+        return UIModalPresentationStyle.none
+    }
+    
     func tabBar(_ tabBar: UITabBar, didSelect item: UITabBarItem) {
         if (tabBar.items?[0] == item) {
             self.performSegue(withIdentifier: Screens.keyboardScreen.rawValue, sender: self)
+        }else if(tabBar.items?[1] == item){
+            self.performSegue(withIdentifier: Screens.cameraScreen.rawValue, sender: self)
+        }else if(tabBar.items?[2] == item){
+            showSettingMenu(sourView: self.tabBar)
         }
+        
     }
     
     func changeLanguage(selectedItem: Int)
@@ -93,16 +108,16 @@ class VoiceViewController: UIViewController, UIPopoverPresentationControllerDele
         if(targetLanguageIsActive){
             self.targetLanguageButton.setTitle(Array(self.languageList.keys)[selectedItem], for: .normal)
             self.targetLanguage = Array(self.languageList.values)[selectedItem]
+            
+            self.viewTextResultLabel.text = ""
+            
+            self.translation(textRecognized: [self.voiceInputTextView.text!])
         }else{
             self.sourceLanguageButton.setTitle(Array(self.languageList.keys)[selectedItem], for: .normal)
             self.sourceLanguage = Array(self.languageList.values)[selectedItem]
             
             speechRecognizer = SFSpeechRecognizer(locale: Locale.init(identifier: Array(self.speechLanguageList.values)[selectedItem]))!
         }
-    }
-    
-    func adaptivePresentationStyle(for controller: UIPresentationController) -> UIModalPresentationStyle {
-        return UIModalPresentationStyle.none
     }
     
     @IBAction func microphoneTapped(_ sender: Any) {
@@ -134,7 +149,7 @@ class VoiceViewController: UIViewController, UIPopoverPresentationControllerDele
         self.sourceLanguage = self.languageList[tergetTemp!]!
         
         self.voiceInputTextView.text = self.viewTextResultLabel.text
-        self.translation(textRecognized: self.voiceInputTextView.text)
+        self.translation(textRecognized: [self.voiceInputTextView.text])
         
         speechRecognizer = SFSpeechRecognizer(locale: Locale.init(identifier: self.speechLanguageList[tergetTemp!]!))!
     }
@@ -201,7 +216,7 @@ class VoiceViewController: UIViewController, UIPopoverPresentationControllerDele
                 
                 self.microphoneButton.isEnabled = true
                 
-                self.translation(textRecognized: self.voiceInputTextView.text)
+                self.translation(textRecognized: [self.voiceInputTextView.text])
                 
             }
         })
@@ -228,9 +243,9 @@ class VoiceViewController: UIViewController, UIPopoverPresentationControllerDele
         }
     }
     
-    func translation(textRecognized: String) {
+    func translation(textRecognized: [String]) {
         
-        if textRecognized.isEmpty{
+        if textRecognized.count <= 0 || self.voiceInputTextView.text.isEmpty {
             return
         }
         
@@ -241,12 +256,35 @@ class VoiceViewController: UIViewController, UIPopoverPresentationControllerDele
         
         self.loading.startAnimating()
         
-        translation.textTranslation(completion: { (translatedText) in
-            DispatchQueue.main.sync {
+        if self.sourceLanguage == self.targetLanguage {
+            self.loading.stopAnimating()
+            self.viewTextResultLabel.text = textRecognized.first
+            
+        } else{
+            
+            if !Utilities().isInternetAvailable(){
                 self.loading.stopAnimating()
-                self.viewTextResultLabel.text = translatedText
+                showToast(message: Messages.cannotConnectInternet)
+                return
             }
-        })
+            
+            translation.textTranslation(completion: { (translatedText) in
+                DispatchQueue.main.sync {
+                    self.loading.stopAnimating()
+                    self.viewTextResultLabel.text = translatedText
+                    
+                    let history = History()
+                    //history.createdAt = Date() as? NSDate
+                    let sourceLanguage = self.sourceLanguageButton.title(for: UIControlState.normal)!
+                    let targetLanguage = self.targetLanguageButton.title(for: UIControlState.normal)!
+                    let sourceText = textRecognized.first!
+                    let translatedText = translatedText
+                    
+                    history.add(sourceLanguage: sourceLanguage, targetLanguage: targetLanguage, sourceText: sourceText, translatedText: translatedText)
+                }
+            })
+
+        }
     }
     
     func startTimer(time: TimeInterval) {

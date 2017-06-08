@@ -16,8 +16,22 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
+        UIApplication.shared.isStatusBarHidden = false
         UIApplication.shared.statusBarStyle = .lightContent
-        //UINavigationBar.appearance().barStyle = .default
+        
+        let startScreenIndex = UserDefaults.standard.object(forKey: Commons.startScreenIndex) as? Int
+        var startScreen = Screens.cameraScreen.rawValue
+        if(startScreenIndex != nil){
+            startScreen = Settings.screenData[startScreenIndex!]["key"]!
+        }
+        
+        let viewCotroller = UIStoryboard(name: "Main", bundle: nil).instantiateViewController(withIdentifier: startScreen)
+        
+        window?.rootViewController = viewCotroller
+        
+        Thread.sleep(forTimeInterval: Settings.spashScreenTimer)
+        
+        //self.window?.performSegue(withIdentifier: startScreen, sender: self)
         return true
     }
 

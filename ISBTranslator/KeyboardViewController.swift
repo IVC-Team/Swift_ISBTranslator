@@ -8,7 +8,7 @@
 
 import UIKit
 
-class KeyboardViewController: UIViewController, UIPopoverPresentationControllerDelegate, UITabBarDelegate, SelectLanguageDelegate{
+class KeyboardViewController: UIViewController, UIPopoverPresentationControllerDelegate, UITabBarDelegate, SelectLanguageDelegate {
     
     @IBOutlet weak var textResultScrollView: UIScrollView!
     @IBOutlet weak var languageView: UIView!
@@ -42,6 +42,8 @@ class KeyboardViewController: UIViewController, UIPopoverPresentationControllerD
         super.viewWillAppear(animated)
         //UIApplication.shared.statusBarStyle = .lightContent
         registerKeyboardNotifications()
+        self.navigationController?.interactivePopGestureRecognizer?.isEnabled = false
+        self.navigationController?.isNavigationBarHidden = true
     }
     
     override func viewWillDisappear(_ animated: Bool) {
@@ -67,6 +69,10 @@ class KeyboardViewController: UIViewController, UIPopoverPresentationControllerD
     func tabBar(_ tabBar: UITabBar, didSelect item: UITabBarItem) {
         if (tabBar.items?[0] == item) {
             self.performSegue(withIdentifier: Screens.voiceScreen.rawValue, sender: self)
+        }else if(tabBar.items?[1] == item){
+            self.performSegue(withIdentifier: Screens.cameraScreen.rawValue, sender: self)
+        }else if(tabBar.items?[2] == item){
+            showSettingMenu(sourView: self.tabBar)
         }
     }
     
@@ -75,6 +81,10 @@ class KeyboardViewController: UIViewController, UIPopoverPresentationControllerD
         if(targetLanguageIsActive){
             self.targetLanguageButton.setTitle(Array(self.languageList.keys)[selectedItem], for: .normal)
             self.targetLanguage = Array(self.languageList.values)[selectedItem]
+            
+            self.viewTextResultLabel.text = ""
+            
+            self.translation(textRecognized: [self.inputTextTranslateTextField.text!])
         }else{
             self.sourceLanguageButton.setTitle(Array(self.languageList.keys)[selectedItem], for: .normal)
             self.sourceLanguage = Array(self.languageList.values)[selectedItem]
@@ -90,8 +100,7 @@ class KeyboardViewController: UIViewController, UIPopoverPresentationControllerD
     }
     
     @IBAction func translateButtonTapped(_ sender: Any) {
-        self.loading.startAnimating()
-        self.translation(textRecognized: self.inputTextTranslateTextField.text!)
+        self.translation(textRecognized: [self.inputTextTranslateTextField.text!])
     }
     
     @IBAction func sourceLanguageButtonTapped(_ sender: Any) {
@@ -123,22 +132,52 @@ class KeyboardViewController: UIViewController, UIPopoverPresentationControllerD
         
         self.inputTextTranslateTextField.text = self.viewTextResultLabel.text
         
-        self.translation(textRecognized: self.inputTextTranslateTextField.text!)
+        self.translation(textRecognized: [self.inputTextTranslateTextField.text!])
     }
     
-    func translation(textRecognized: String) {
+    func translation(textRecognized: [String]) {
+        
+        if textRecognized.count <= 0 || (self.inputTextTranslateTextField.text?.isEmpty)! {
+            return
+        }
         
         let translation = Translation()
         translation.sourceLanguage = self.sourceLanguage
         translation.targetLanguage = self.targetLanguage
         translation.textSource = textRecognized
         
-        translation.textTranslation(completion: { (translatedText) in
-            DispatchQueue.main.sync {
+        self.loading.startAnimating()
+
+        
+        if self.sourceLanguage == self.targetLanguage {
+            self.loading.stopAnimating()
+            self.viewTextResultLabel.text = textRecognized.first
+            
+        } else{
+            
+            if !Utilities().isInternetAvailable(){
                 self.loading.stopAnimating()
-                self.viewTextResultLabel.text = translatedText
+                showToast(message: Messages.cannotConnectInternet)
+                return
             }
-        })
+            
+            translation.textTranslation(completion: { (translatedText) in
+                DispatchQueue.main.sync {
+                    self.loading.stopAnimating()
+                    self.viewTextResultLabel.text = translatedText
+                    
+                    let history = History()
+                    //history.createdAt = Date() as? NSDate
+                    let sourceLanguage = self.sourceLanguageButton.title(for: UIControlState.normal)!
+                    let targetLanguage = self.targetLanguageButton.title(for: UIControlState.normal)!
+                    let sourceText = self.inputTextTranslateTextField.text!
+                    let translatedText = translatedText
+                    
+                    history.add(sourceLanguage: sourceLanguage, targetLanguage: targetLanguage, sourceText: sourceText, translatedText: translatedText)
+                }
+            })
+
+        }
     }
     
     func registerKeyboardNotifications() {

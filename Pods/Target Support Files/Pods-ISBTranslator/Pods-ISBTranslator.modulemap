@@ -1,0 +1,6 @@
+framework module Pods_ISBTranslator {
+  umbrella header "Pods-ISBTranslator-umbrella.h"
+
+  export *
+  module * { export * }
+}

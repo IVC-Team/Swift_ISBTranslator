@@ -22,10 +22,13 @@ class ViewController: UIViewController {
     
     override func viewDidAppear(_ animated: Bool) {
         
-        let firstScreen = UserDefaults.standard.object(forKey: FirstScreen)
-        if(firstScreen == nil){
-            self.performSegue(withIdentifier: Screens.keyboardScreen.rawValue, sender: self)
+        let startScreenIndex = UserDefaults.standard.object(forKey: Commons.startScreenIndex) as? Int
+        var startScreen = Screens.keyboardScreen.rawValue
+        if(startScreenIndex != nil){
+            startScreen = Settings.screenData[startScreenIndex!]["key"]!
         }
+        
+        self.performSegue(withIdentifier: startScreen, sender: self)
         
     }
 }

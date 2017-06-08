@@ -16,18 +16,25 @@ class Translation{
     
     var sourceLanguage: String!
     var targetLanguage: String!
-    var textSource: String!
+    var textSource: [String]!
     
     init() {
     }
     private func getStringAPI() -> String{
-        let textSourceWithPercentEscapes = textSource.addingPercentEncoding(withAllowedCharacters: CharacterSet.urlQueryAllowed)! as String
-        return "\(API_Url as String)key=\(API_Key as String)&q=\(textSourceWithPercentEscapes as String)&source=\(sourceLanguage as String)&target=\(targetLanguage as String)"
+        var textSourceString: String = ""
+        
+        for textSourceItem in textSource {
+            let textSourceWithPercentEscapes = textSourceItem.addingPercentEncoding(withAllowedCharacters: CharacterSet.urlQueryAllowed)! as String
+            
+            textSourceString += "&q=\(textSourceWithPercentEscapes)"
+        }
+        
+        return "\(API_Url as String)key=\(API_Key as String)\(textSourceString as String)&source=\(sourceLanguage as String)&target=\(targetLanguage as String)"
     }
     
-    func textTranslation(completion: @escaping (_ resultText: String)->()) -> Void
+    func textTranslationList(completion: @escaping (_ resultText: [NSDictionary])->()) -> Void
     {
-       
+        
         let urlString = getStringAPI()
         
         
@@ -40,7 +47,7 @@ class Translation{
             
             if error != nil {
                 //todo: will update for this
-                print(error!.localizedDescription)
+                print("translate error: \(error!.localizedDescription)")
                 
             } else {
                 
@@ -49,12 +56,15 @@ class Translation{
                     
                     let jsonData = json?["data"] as? [String : Any]
                     
-                    let translations = jsonData?["translations"] as? [NSDictionary]
+                    //let translations = jsonData?["translations"] as? [NSDictionary]
                     
-                    let translation = translations?.first as? [String : Any]
+                    //let translation = translations?.first as? [String : Any]
                     
-                    if let translatedText = translation?["translatedText"] as? String{
-                        completion(translatedText)
+                    //                    if let translatedText = translation?["translatedText"] as? String{
+                    //                        completion(translatedText)
+                    //                    }
+                    if let translations = jsonData?["translations"] as? [NSDictionary]{
+                        completion(translations)
                     }
                     else{
                         //todo: will update for this
@@ -73,5 +83,20 @@ class Translation{
             
         })
         task.resume()
+    }
+
+    
+    func textTranslation(completion: @escaping (_ resultText: String)->()) -> Void
+    {
+        textTranslationList { (translatedTextArr) in
+            let translation = translatedTextArr.first as? [String : Any]
+            if let translatedText = translation?["translatedText"] as? String{
+                completion(translatedText)
+            }
+            else{
+                //todo: will update for this
+                print("translate error")
+            }
+        }        
     }
 }
